@@ -1,5 +1,5 @@
 {
-  "pluginAlias": "homebridge-http-switch-platform",
+  "pluginAlias": "httpSwitchPlatform",
   "pluginType": "platform",
   "singular": true,
   "schema": {
