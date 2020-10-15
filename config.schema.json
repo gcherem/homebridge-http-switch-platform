@@ -16,6 +16,12 @@
         "type": "string",
         "required": true,
         "default": "http://"
+      },
+      "localPort": {
+        "title": "Local port",
+        "type": "integer",
+        "required": true,
+        "default": "8191"
       }
     }
   }
