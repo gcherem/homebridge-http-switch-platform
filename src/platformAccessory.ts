@@ -1,6 +1,6 @@
 import { Service, PlatformAccessory, CharacteristicValue, CharacteristicSetCallback, CharacteristicGetCallback } from 'homebridge';
 
-import { HttpSwitchPlatform } from './platform';
+import { HomebridgePlatform } from './platform';
 
 /**
  * Platform Accessory
@@ -20,7 +20,7 @@ export class ExamplePlatformAccessory {
   };
 
   constructor(
-    private readonly platform: HttpSwitchPlatform,
+    private readonly platform: HomebridgePlatform,
     private readonly accessory: PlatformAccessory,
   ) {
 

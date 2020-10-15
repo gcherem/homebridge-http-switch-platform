@@ -1,5 +1,5 @@
 {
-  "pluginAlias": "httpSwitchPlatform",
+  "pluginAlias": "HttpSwitchPlatform",
   "pluginType": "platform",
   "singular": true,
   "schema": {
@@ -10,12 +10,6 @@
         "type": "string",
         "required": true,
         "default": "Switch Automation"
-      },
-      "num_switches": {
-        "title": "Number of Switches",
-        "type": "integer",
-        "required": true,
-        "default": "48"
       },
       "url": {
         "title": "Device URL",

@@ -1,11 +1,11 @@
 import { API } from 'homebridge';
 
 import { PLATFORM_NAME } from './settings';
-import { HttpSwitchPlatform } from './platform'; 
+import { HomebridgePlatform } from './platform'; 
 
 /**
  * This method registers the platform with Homebridge
  */
 export = (api: API) => {
-  api.registerPlatform(PLATFORM_NAME, HttpSwitchPlatform);
+  api.registerPlatform(PLATFORM_NAME, HomebridgePlatform);
 };
