@@ -2,8 +2,9 @@ import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, 
 import http, {IncomingMessage, Server, ServerResponse} from 'http';
 
 import { PLATFORM_NAME, PLUGIN_NAME, DEVICE_COUNT } from './settings';
-import { ExamplePlatformAccessory } from './platformAccessory';
-import * as request from 'request-promise-native';
+import { HomebridgePlatformAccessory } from './platformAccessory';
+import { Mutex } from 'async-mutex';
+import bent from 'bent';
 
 /**
  * HomebridgePlatform
@@ -12,6 +13,8 @@ import * as request from 'request-promise-native';
  */
 export class HomebridgePlatform implements DynamicPlatformPlugin {
   private requestServer?: Server;
+  private lastPostString = '';
+  public LastUpdatedDevice = 0;
   public readonly Service: typeof Service = this.api.hap.Service;
   public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
 
@@ -55,41 +58,26 @@ export class HomebridgePlatform implements DynamicPlatformPlugin {
    * must not be registered again to prevent "duplicate UUID" errors.
    */
   async discoverDevices() {
-    const status = await this.getStatus();
+    // const status = await this.getStatusFromDevice();
+    // console.log(status)
     for (let i = 0; i < DEVICE_COUNT; i++) {
       const uniqueId = 'L'+('00' + i).slice(-2);
       const uuid = this.api.hap.uuid.generate(uniqueId);
-      const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
-      if (existingAccessory) {
-        this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
-        new ExamplePlatformAccessory(this, existingAccessory);
-        existingAccessory.context.index = i;
-        existingAccessory.context.statusOn = status[i]===1;
-        this.api.updatePlatformAccessories([existingAccessory]);
+      let accessory = this.accessories.find(accessory => accessory.UUID === uuid);
+      if (accessory) {
+        this.log.info('Restoring existing accessory from cache:', accessory.displayName);
+        this.api.updatePlatformAccessories([accessory]);
       } else {
         this.log.info('Adding new accessory:', uniqueId);
-        const accessory = new this.api.platformAccessory(uniqueId, uuid);
+        accessory = new this.api.platformAccessory(uniqueId, uuid);
         accessory.context.index = i;
-        accessory.context.statusOn = status[i]===1;
-        new ExamplePlatformAccessory(this, accessory);
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       }
+      new HomebridgePlatformAccessory(this, accessory);
     }
-  }
-
-  async getStatus() {
-    const url = `${this.config.url}get_status`;
-    let response;
-    try {
-      response = await request.get({url});
-    } catch (exception) {
-      this.log.error(`ERROR received from ${url}: ${exception}`);
-    }
-    return JSON.parse(response).st;
   }
 
   createHttpService() {
-    // const port = this.config.port || 
     this.requestServer = http.createServer(this.handleRequest.bind(this));
     this.requestServer.listen(this.config.localPort, () => this.log.info(`Http server listening on ${this.config.localPort}...`));
   }
@@ -110,13 +98,43 @@ export class HomebridgePlatform implements DynamicPlatformPlugin {
     response.end();
   }
 
+  private updateHomeKit(accessory, value: boolean) {
+    if (accessory.context.statusOn !== value) {
+      accessory.context.statusOn = value;
+      const service = accessory.getService(this.Service.Lightbulb);
+      this.log.debug(`Update Characteristic On L${accessory.context.index}-> ${value}`);
+      (service as Service).updateCharacteristic(this.Characteristic.On, value);
+    }
+  }
+
+
   setStatus(statuses) {
     statuses.forEach((status, i) => {
-      const on = status === 1;
-      if (this.accessories[i].context.statusOn !== on) {
-        this.accessories[i].context.statusOn = on;
-        const service = this.accessories[i].getService(this.Service.Lightbulb);
-        (service as Service).updateCharacteristic(this.Characteristic.On, on);
+      this.updateHomeKit(this.accessories[i], status === 1);
+    });
+  }
+
+  getStatusFromAccessories(): string {
+    let ret = '';
+    this.accessories.forEach(accessory => {      
+      ret = `${ret}${accessory.context.statusOn? '1':'0'}`;
+    });
+    return ret;
+  }
+
+  async updateDevice() {
+    const mutex = new Mutex();
+    await mutex.runExclusive(async () => {
+      const postString = this.getStatusFromAccessories();
+      if (postString !== this.lastPostString) {
+        try {
+          const post = bent(this.config.url as string, 'POST', 'string');
+          post('set_status', postString);
+          console.log(postString)
+          this.lastPostString = postString;
+        } catch (exception) {
+          this.log.error(`ERROR received from ${this.config.url as string}: ${exception}`);
+        }
       }
     });
   }
