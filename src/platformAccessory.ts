@@ -1,22 +1,14 @@
 import { Service, PlatformAccessory, CharacteristicValue, CharacteristicSetCallback, CharacteristicGetCallback } from 'homebridge';
 import { HomebridgePlatform } from './platform';
 
-
 // https://github.com/homebridge/homebridge/issues/1455
 
 // https://github.com/ebaauw/homebridge-hue/blob/1448ec5f6865e3fbf72f5fa760ab91c59263adc1/lib/HueLight.js#L886
 // https://github.com/ebaauw/homebridge-hue/blob/a10f39d94d8cd4d26b5fe39477ccf78d7a1c7a1e/lib/HueBridge.js#L136
 
-
-/**
- * Platform Accessory
- * An instance of this class is created for each accessory your platform registers
- * Each accessory may expose multiple services of different service types.
- */
 export class HomebridgePlatformAccessory {
   private service: Service;
-
-
+  
   constructor(
     private readonly platform: HomebridgePlatform,
     private readonly accessory: PlatformAccessory,
